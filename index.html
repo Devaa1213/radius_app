@@ -9,17 +9,17 @@
     <title>CampusVibe | Connect, Create & Lead</title>
 
     <!-- 
-        CAMPUSVIBE PRODUCTION CORE v3.0.0 (SURGICAL UPGRADE)
+        CAMPUSVIBE PRODUCTION CORE v2.7.0
         Architecture: Single-File Orchestration
         Maintainer: Senior Product Architect
+        Lines: > 1500 (Production Grade)
         
-        ChangeLog (v3.0.0):
-        - [NEW] Auto-Vanish Event Logic (Real-time Expiry)
-        - [NEW] Dynamic Event Registration (Direct vs Application)
-        - [NEW] Admin Application Review System
-        - [NEW] Team Request Accept/Reject Workflows
-        - [NEW] Dedicated Notification Center (Glass Modal)
-        - [NEW] Enhanced Global Announcements
+        ChangeLog (v2.7.0):
+        - Implemented Auto-Vanish Event Logic (Time-based filtering)
+        - Added Notification Center (Modal View + Real-time Listeners)
+        - Enhanced Team Inbox with Accept/Reject Workflows
+        - Added Admin Event Modes (Direct vs Application)
+        - Implemented Approval Workflow for Registrations
     -->
 
     <!-- Fix Favicon 404 -->
@@ -285,7 +285,9 @@
       /* New Animated Progress Bar */
       .progress-bar-fill {
         height: 100%;
+
         border-radius: inherit;
+
         transition: width 0.6s ease-in-out;
       }
     </style>
@@ -371,10 +373,11 @@
           </div>
 
           <div class="flex items-center space-x-4">
-            <!-- Task 2: Global Notification Bell -->
+            <!-- Task 3: Global Notification Bell -->
             <div class="relative group">
+              <!-- NEW: Changed click to open Notif Modal -->
               <button
-                onclick="notifLogic.openPanel()"
+                onclick="notifLogic.openModal()"
                 class="p-2.5 rounded-xl text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800 transition border border-transparent hover:border-slate-200 dark:hover:border-slate-700 relative"
               >
                 <span class="text-xl">🔔</span>
@@ -674,7 +677,7 @@
                 </button>
               </div>
 
-              <!-- TAB: TICKETS -->
+              <!-- Task 2: Tickets Page Enhancement -->
               <div id="dash-tickets" class="dashboard-tab">
                 <div
                   class="flex justify-between items-center mb-8 pb-4 border-b dark:border-slate-800"
@@ -709,7 +712,7 @@
                 <div id="profile-posts" class="space-y-6"></div>
               </div>
 
-              <!-- TAB: INBOX (With Accept/Reject) -->
+              <!-- Task 1: Collaboration Page (Inbox UI Fix - Side by Side) -->
               <div id="dash-inbox" class="dashboard-tab">
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-12">
                   <!-- LEFT COLUMN: Incoming -->
@@ -847,6 +850,69 @@
     </div>
 
     <!-- MODALS -->
+     
+    <!-- NEW: NOTIFICATION CENTER MODAL (Task 2) -->
+    <div
+      id="notif-modal"
+      class="fixed inset-0 z-[110] hidden flex items-center justify-center bg-black/60 backdrop-blur-md p-4"
+    >
+        <div class="glass bg-white dark:bg-slate-900 w-full max-w-lg p-8 rounded-[3rem] shadow-2xl relative flex flex-col max-h-[85vh]">
+            <button
+              onclick="ui.closeModal('notif-modal')"
+              class="absolute top-6 right-6 text-slate-400 text-xl"
+            >
+              ✕
+            </button>
+            <div class="mb-6 flex justify-between items-center pr-8">
+                <h3 class="text-2xl font-black dark:text-white">
+                  Notifications
+                </h3>
+                <button onclick="notifLogic.markAllRead()" class="text-[10px] font-black text-indigo-600 uppercase tracking-widest hover:underline">
+                    Mark All Read
+                </button>
+            </div>
+            <div id="notif-list" class="flex-grow overflow-y-auto space-y-3 p-2">
+                <!-- Content injected via JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- NEW: APPLICATION FORM MODAL (Admin Task) -->
+    <div
+      id="app-form-modal"
+      class="fixed inset-0 z-[120] hidden flex items-center justify-center bg-black/70 backdrop-blur-md p-4"
+    >
+      <div
+        class="glass bg-white dark:bg-slate-900 w-full max-w-lg p-10 rounded-[3rem] shadow-2xl relative"
+      >
+        <button
+          onclick="ui.closeModal('app-form-modal')"
+          class="absolute top-6 right-6 text-slate-400 text-xl"
+        >
+          ✕
+        </button>
+        <h3 class="text-3xl font-black mb-6 dark:text-white">
+          Event Application
+        </h3>
+        <p class="text-sm text-slate-500 mb-4 italic">This event requires approval. Please provide your statement of interest.</p>
+        <form onsubmit="eventsLogic.submitApplication(event)" class="space-y-4">
+          <input type="hidden" id="app-event-id" />
+          <textarea
+            id="app-reason"
+            placeholder="Why do you want to attend? (Statement of Purpose)"
+            rows="4"
+            class="w-full p-4 rounded-2xl border dark:bg-slate-800 dark:text-white"
+            required
+          ></textarea>
+          <button
+            type="submit"
+            class="w-full bg-indigo-600 text-white py-4 rounded-2xl font-black shadow-lg"
+          >
+            SUBMIT APPLICATION
+          </button>
+        </form>
+      </div>
+    </div>
 
     <!-- [MODAL] AUTH -->
     <div
@@ -922,7 +988,7 @@
       </div>
     </div>
 
-    <!-- [MODAL] EVENT DETAIL (AUTO-VANISH + DYNAMIC APPS) -->
+    <!-- [MODAL] EVENT DETAIL -->
     <div
       id="detail-modal"
       class="fixed inset-0 z-[100] hidden flex items-center justify-center bg-black/70 backdrop-blur-md p-4"
@@ -937,45 +1003,6 @@
           ✕
         </button>
         <div id="detail-content" class="overflow-y-auto"></div>
-      </div>
-    </div>
-
-    <!-- [MODAL] NOTIFICATIONS (NEW) -->
-    <div
-      id="notification-modal"
-      class="fixed inset-0 z-[100] hidden flex items-center justify-center bg-black/70 backdrop-blur-md p-4"
-    >
-      <div
-        class="glass bg-white dark:bg-slate-900 w-full max-w-lg p-8 rounded-[3rem] shadow-2xl relative flex flex-col h-[600px]"
-      >
-        <button
-          onclick="ui.closeModal('notification-modal')"
-          class="absolute top-6 right-6 text-slate-400 text-xl"
-        >
-          ✕
-        </button>
-        <div class="mb-6">
-          <h3 class="text-2xl font-black dark:text-white">
-            Notifications
-          </h3>
-          <p class="text-xs text-slate-500 font-bold uppercase">
-            Real-time updates
-          </p>
-        </div>
-        <div
-          id="notif-list"
-          class="flex-grow overflow-y-auto flex flex-col gap-3"
-        >
-          <!-- Notifications inserted here -->
-        </div>
-        <div class="mt-4 pt-4 border-t dark:border-slate-800">
-          <button
-            onclick="notifLogic.markAllRead()"
-            class="w-full py-3 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-xl font-bold text-xs"
-          >
-            Mark All Read
-          </button>
-        </div>
       </div>
     </div>
 
@@ -1227,7 +1254,7 @@
       </div>
     </div>
 
-    <!-- [MODAL] TICKET VIEW -->
+    <!-- [MODAL] TICKET VIEW (New Component for Task 2) -->
     <div
       id="ticket-modal"
       class="fixed inset-0 z-[120] hidden flex items-center justify-center bg-black/90 backdrop-blur-md p-4"
@@ -1293,7 +1320,7 @@
       </div>
     </div>
 
-    <!-- [MODAL] REG VIEWER (ADMIN) -->
+    <!-- [MODAL] REG VIEW -->
     <div
       id="reg-viewer-modal"
       class="fixed inset-0 z-[100] hidden flex items-center justify-center bg-black/80 backdrop-blur-md p-4"
@@ -1332,7 +1359,7 @@
                 class="text-[10px] uppercase font-black text-slate-500"
               >
                 <th class="p-6">Name</th>
-                <th class="p-6">Application Data</th>
+                <th class="p-6">Details</th>
                 <th class="p-6 text-right">Status</th>
               </tr>
             </thead>
@@ -1373,7 +1400,7 @@
       </div>
     </div>
 
-    <!-- [MODAL] EVENT ADMIN (CREATE/EDIT) - UPDATED Task 4 -->
+    <!-- EVENT modal for admin -->
     <div
       id="event-modal"
       class="fixed inset-0 z-[100] hidden flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
@@ -1388,7 +1415,7 @@
           ✕
         </button>
         <h3 class="text-xl font-bold mb-4 dark:text-white">
-          Manage Event Matrix
+          Manage Event
         </h3>
         <form
           onsubmit="adminLogic.saveEvent(event)"
@@ -1398,7 +1425,7 @@
           <input
             type="text"
             id="admin-title"
-            placeholder="Event Title"
+            placeholder="Title"
             class="w-full px-3 py-2 border rounded-lg bg-transparent dark:text-white dark:border-slate-600"
             required
           />
@@ -1408,49 +1435,40 @@
             class="w-full px-3 py-2 border rounded-lg bg-transparent dark:text-white dark:border-slate-600"
             required
           />
-          <div class="flex gap-2">
-            <select
-              id="admin-type"
-              class="w-1/2 px-3 py-2 border rounded-lg bg-transparent dark:text-white dark:border-slate-600"
-            >
-              <option value="Hackathon">Hackathon</option>
-              <option value="Workshop">Workshop</option>
-            </select>
-            <!-- NEW: Dynamic Registration Type -->
-            <select
-              id="admin-reg-type"
-              class="w-1/2 px-3 py-2 border rounded-lg bg-transparent dark:text-white dark:border-slate-600 border-indigo-200"
-            >
-              <option value="direct">Direct Ticket</option>
-              <option value="approval">Application Required</option>
-            </select>
-          </div>
-
+          <select
+            id="admin-type"
+            class="w-full px-3 py-2 border rounded-lg bg-transparent dark:text-white dark:border-slate-600"
+          >
+            <option>Hackathon</option>
+            <option>Workshop</option>
+          </select>
           <input
             type="text"
             id="admin-venue"
-            placeholder="Venue Coordinates"
+            placeholder="Venue"
             class="w-full px-3 py-2 border rounded-lg bg-transparent dark:text-white dark:border-slate-600"
             required
           />
-          
-          <!-- NEW: Custom Application Questions -->
-          <textarea
-            id="admin-questions"
-            placeholder="Application Questions (Only for Approval Mode) - Enter one question per line..."
-            rows="3"
-            class="w-full px-3 py-2 border rounded-lg bg-indigo-50/50 dark:bg-slate-800 dark:text-white dark:border-slate-600 text-xs"
-          ></textarea>
-
+          <!-- NEW: Registration Mode Toggle -->
+          <div class="flex items-center gap-2 p-2 bg-indigo-50 dark:bg-indigo-900/30 rounded-lg">
+             <input type="checkbox" id="admin-reg-mode" class="w-5 h-5 accent-indigo-600" />
+             <label for="admin-reg-mode" class="text-xs font-bold dark:text-white">Require Application/Approval Form</label>
+          </div>
+          <input
+            type="url"
+            id="admin-link"
+            placeholder="Google Form (Optional)"
+            class="w-full px-3 py-2 border border-indigo-200 bg-indigo-50 dark:bg-indigo-900/30 rounded-lg dark:text-white"
+          />
           <input
             type="url"
             id="admin-poster"
-            placeholder="Poster Image URL"
+            placeholder="Poster URL"
             class="w-full px-3 py-2 border rounded-lg bg-transparent dark:text-white dark:border-slate-600"
           />
           <textarea
             id="admin-desc"
-            placeholder="Detailed Description"
+            placeholder="Description"
             rows="3"
             class="w-full px-3 py-2 border rounded-lg bg-transparent dark:text-white dark:border-slate-600"
             required
@@ -1458,9 +1476,9 @@
           <button
             type="submit"
             id="admin-save-btn"
-            class="w-full bg-slate-800 text-white py-2 rounded-lg font-bold"
+            class="w-full bg-slate-800 text-white py-2 rounded-lg"
           >
-            Save Configuration
+            Save
           </button>
         </form>
       </div>
@@ -1468,19 +1486,26 @@
 
     <script>
       /**
-       * CAMPUSVIBE LOGIC ORCHESTRATION ENGINE v3.0
+       * CAMPUSVIBE LOGIC ORCHESTRATION ENGINE
        * Single-source of truth for state and transitions.
        */
 
-      // FIREBASE SETUP
+      // FIREBASE SETUP - DYNAMIC INJECTION
+      // The server (app.py) injects these values at runtime.
       const firebaseConfig = {
-        apiKey: "",
-        authDomain: "",
-        projectId: "",
-        storageBucket: "",
-        messagingSenderId: "",
-        appId: "",
+        apiKey: "{{ config.apiKey }}",
+        authDomain: "{{ config.authDomain }}",
+        projectId: "{{ config.projectId }}",
+        storageBucket: "{{ config.storageBucket }}",
+        messagingSenderId: "{{ config.messagingSenderId }}",
+        appId: "{{ config.appId }}",
       };
+      
+      // Safety Check: If keys are missing, alert the dev
+      if (!firebaseConfig.apiKey) {
+          console.error("CRITICAL: Firebase Config missing. Check Render Environment Variables.");
+      }
+
       if (!firebase.apps.length)
         firebase.initializeApp(firebaseConfig);
       const auth = firebase.auth();
@@ -1492,8 +1517,9 @@
         isAdmin: false,
         events: [],
         posts: [],
-        userRegistrations: [], // Contains pending AND confirmed
-        notifications: [],     // NEW: Store notifications locally
+        userRegistrations: [],
+        sentRequests: [],
+        incomingRequests: [],
         activeChatId: null,
         profileCompleteness: 0,
         notifCount: 0,
@@ -1501,14 +1527,6 @@
 
       let unsubscribeChat = null;
       let html5QrScanner = null;
-
-      // NEW: Utility to check Event Expiry (Task 1)
-      const isEventExpired = (dateString) => {
-        if (!dateString) return false;
-        const eventDate = new Date(dateString);
-        const now = new Date();
-        return now > eventDate;
-      };
 
       // UI ORCHESTRATOR
       window.ui = {
@@ -1518,7 +1536,6 @@
           const el = document.getElementById(id);
           if (el) el.classList.remove("hidden");
           if (id === "scanner-modal") scannerLogic.start();
-          if (id === "notification-modal") notifLogic.render(); // NEW
         },
         closeModal: (id) => {
           const el = document.getElementById(id);
@@ -1548,137 +1565,146 @@
           const el = document.getElementById(id);
           if (!el) return;
           let current = 0;
-          const increment = Math.ceil(target / 30);
+          const increment = target / 30;
           const timer = setInterval(() => {
             current += increment;
             if (current >= target) {
-              el.innerText = target;
+              el.innerText = Math.round(target);
               clearInterval(timer);
             } else {
-              el.innerText = current;
+              el.innerText = Math.round(current);
             }
           }, 30);
         },
       };
 
-      // Task 2: ENHANCED Notification System
+      // Task 2 & 3: Enhanced Notification System
       window.notifLogic = {
+        lastSeen: { events: 0 },
         init: function () {
           if (!state.user) return;
-
-          // 1. Listen to Private User Notifications
+          
+          // 1. Personal Notifications Listener (Sub-collection)
           db.collection("users")
             .doc(state.user.uid)
             .collection("notifications")
             .orderBy("timestamp", "desc")
-            .onSnapshot((snap) => {
-              state.notifications = snap.docs.map((d) => ({
-                id: d.id,
-                ...d.data(),
-              }));
-              const unread = state.notifications.filter(
-                (n) => !n.read
-              ).length;
-              this.updateBadge(unread);
-              if (
-                document.getElementById("notification-modal")
-                  .classList.contains("hidden") === false
-              ) {
-                this.render();
-              }
+            .limit(20)
+            .onSnapshot((s) => {
+                const unread = s.docs.filter(d => !d.data().read).length;
+                this.updateBadge(unread);
+                this.renderList(s.docs);
             });
 
-          // 2. Listen to Global Announcements (New)
-          db.collection("announcements")
+          // 2. Broadcast Listener (New Events / Admin Msg)
+          // Listens to a shared 'broadcasts' collection
+          db.collection("broadcasts")
             .orderBy("timestamp", "desc")
             .limit(5)
-            .onSnapshot((snap) => {
-              // Just a toast for now to avoid db complexity per user
-              snap.docChanges().forEach((change) => {
-                if (change.type === "added") {
-                   // Optional: Toast for global announcement
-                }
-              });
+            .onSnapshot(s => {
+                // We don't mark these as read in DB easily without writing per user.
+                // We just show them in the UI mixed in.
+                // Logic: If broadcast timestamp > last login, show badge? 
+                // Simplified: Just render them at the top.
+                this.renderBroadcasts(s.docs);
             });
         },
-        updateBadge: function (count) {
-          const badge = document.getElementById("notif-badge");
-          if (count > 0) {
-            badge.innerText = count > 9 ? "9+" : count;
-            badge.classList.remove("hidden");
-          } else {
-            badge.classList.add("hidden");
-          }
-        },
-        openPanel: function () {
-          ui.openModal("notification-modal");
-        },
-        render: function () {
-          const list = document.getElementById("notif-list");
-          if (state.notifications.length === 0) {
-            list.innerHTML =
-              '<p class="text-center text-slate-400 italic mt-10">No new alerts</p>';
-            return;
-          }
-          list.innerHTML = state.notifications
-            .map(
-              (n) => `
-                <div class="bg-slate-50 dark:bg-slate-800 p-4 rounded-2xl flex gap-3 ${
-                  !n.read ? "border-l-4 border-indigo-500" : ""
-                }">
-                    <div class="text-xl">${
-                      n.type === "event"
-                        ? "🎉"
-                        : n.type === "team"
-                        ? "🤝"
-                        : "📢"
-                    }</div>
-                    <div class="flex-1">
-                        <p class="text-xs font-bold dark:text-white">${
-                          n.message
-                        }</p>
-                        <p class="text-[9px] text-slate-400 mt-1">${
-                          n.timestamp
-                            ?.toDate()
-                            .toLocaleString() || ""
-                        }</p>
-                    </div>
-                </div>`
-            )
-            .join("");
-        },
-        markAllRead: async function () {
-          const batch = db.batch();
-          state.notifications.forEach((n) => {
-            if (!n.read) {
-              const ref = db
-                .collection("users")
-                .doc(state.user.uid)
-                .collection("notifications")
-                .doc(n.id);
-              batch.update(ref, { read: true });
+        updateBadge: function(count) {
+            const badge = document.getElementById("notif-badge");
+            if (count > 0) {
+                badge.innerText = count > 9 ? "9+" : count;
+                badge.classList.remove("hidden");
+            } else {
+                badge.classList.add("hidden");
             }
-          });
-          await batch.commit();
-          ui.showToast("All notifications archived");
         },
-        // Helper to send notification (called by other logic)
-        send: async function (targetUid, type, msg) {
-          await db
-            .collection("users")
-            .doc(targetUid)
-            .collection("notifications")
-            .add({
-              type,
-              message: msg,
-              read: false,
-              timestamp:
-                firebase.firestore.FieldValue.serverTimestamp(),
+        openModal: function() {
+            ui.openModal("notif-modal");
+        },
+        renderList: function(docs) {
+            // Renders personal notifications
+            // We append these to a container. 
+            // Note: renderBroadcasts handles clearing/prepending.
+            this.personalDocs = docs;
+            this.refreshUI();
+        },
+        renderBroadcasts: function(docs) {
+            this.broadcastDocs = docs;
+            this.refreshUI();
+        },
+        refreshUI: function() {
+             const list = document.getElementById("notif-list");
+             if(!list) return;
+             
+             let html = "";
+             
+             // Combine logic (simple concat for now)
+             const broadcastItems = (this.broadcastDocs || []).map(d => {
+                 const n = d.data();
+                 return this.template(n, true);
+             });
+             
+             const personalItems = (this.personalDocs || []).map(d => {
+                 const n = d.data();
+                 return this.template(n, false, d.id);
+             });
+
+             if(broadcastItems.length === 0 && personalItems.length === 0) {
+                 list.innerHTML = '<p class="text-center text-slate-400 italic py-10">All caught up!</p>';
+                 return;
+             }
+             
+             list.innerHTML = broadcastItems.join("") + personalItems.join("");
+        },
+        template: function(n, isBroadcast, id) {
+            const icon = n.type === 'event' ? '📅' : n.type === 'success' ? '✅' : n.type === 'alert' ? '📢' : '💬';
+            const bg = n.read ? 'bg-white dark:bg-slate-800' : 'bg-indigo-50 dark:bg-slate-800 border-l-4 border-indigo-600';
+            
+            return `
+            <div onclick="${!isBroadcast ? `notifLogic.markRead('${id}')` : ''}" class="${bg} p-4 rounded-2xl shadow-sm mb-2 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700 transition">
+                <div class="flex gap-3">
+                    <div class="text-xl">${icon}</div>
+                    <div>
+                        <p class="text-sm font-bold dark:text-white">${n.message}</p>
+                        <p class="text-[10px] text-slate-400 font-bold uppercase mt-1">${n.timestamp?.toDate().toLocaleString() || 'Just now'}</p>
+                    </div>
+                </div>
+            </div>`;
+        },
+        markRead: function(id) {
+            if(!id) return;
+            db.collection("users").doc(state.user.uid).collection("notifications").doc(id).update({ read: true });
+        },
+        markAllRead: function() {
+            if(!this.personalDocs) return;
+            const batch = db.batch();
+            this.personalDocs.forEach(d => {
+                if(!d.data().read) {
+                    batch.update(d.ref, { read: true });
+                }
+            });
+            batch.commit();
+            ui.showToast("All clear", "success");
+        },
+        // Helper to send notification
+        send: async function(uid, msg, type) {
+            await db.collection("users").doc(uid).collection("notifications").add({
+                message: msg,
+                type: type, // 'event', 'success', 'alert', 'chat'
+                read: false,
+                timestamp: firebase.firestore.FieldValue.serverTimestamp()
             });
         },
+        broadcast: async function(msg, type) {
+            await db.collection("broadcasts").add({
+                message: msg,
+                type: type,
+                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            });
+        }
       };
 
-      // ADMIN LOGIC (Updated for Task 4)
+      // ADMIN POWER LOGIC
       window.adminLogic = {
         init: function () {
           if (!state.isAdmin)
@@ -1716,19 +1742,20 @@
               tbody.innerHTML = s.docs
                 .map((d) => {
                   const e = d.data();
+                  // Task 1: Check expiry for Admin View (Visual indicator only)
+                  const isExpired = new Date(e.date) < new Date();
+                  
                   return `
                         <tr class="border-b dark:border-slate-800 hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition">
-                            <td class="p-6"><div><p class="font-black">${
+                            <td class="p-6"><div><p class="font-black ${isExpired ? 'text-slate-400 line-through' : ''}">${
                               e.title
                             }</p><p class="text-[9px] uppercase tracking-tighter opacity-60">${
                     e.type
-                  } • ${
-                    e.regType === "approval" ? "Application" : "Direct"
-                  }</p></div></td>
+                  } ${e.regType === 'application' ? '• APPROVAL REQ' : ''}</p></div></td>
                             <td class="p-6 text-xs text-slate-500">${
-                              e.date || "UNSCHEDULED"
+                              e.date ? new Date(e.date).toLocaleString() : "UNSCHEDULED"
                             }</td>
-                            <td class="p-6"><span class="bg-green-100 text-green-700 px-2 py-1 rounded-lg text-[9px] font-black uppercase">Active Network</span></td>
+                            <td class="p-6"><span class="${isExpired ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-700'} px-2 py-1 rounded-lg text-[9px] font-black uppercase">${isExpired ? 'EXPIRED' : 'ACTIVE'}</span></td>
                             <td class="p-6 text-right flex justify-end gap-2">
                                 <button onclick="adminLogic.loadRegistrations('${
                                   d.id
@@ -1744,30 +1771,26 @@
                 .join("");
             });
         },
+        // Updated for Task 4: Admin Event Creation Modes
         saveEvent: async function (e) {
           e.preventDefault();
-          // Task 4: Capture new fields
-          const regType = document.getElementById("admin-reg-type").value;
-          const questions = document.getElementById("admin-questions").value;
-
+          const isAppMode = document.getElementById("admin-reg-mode").checked;
+          
           const d = {
             title: document.getElementById("admin-title").value,
             type: document.getElementById("admin-type").value,
-            regType: regType, // 'direct' or 'approval'
-            questions: questions, // String of questions
             poster: document.getElementById("admin-poster").value,
             date: document.getElementById("admin-date").value,
             venue: document.getElementById("admin-venue").value,
             description: document.getElementById("admin-desc").value,
+            regType: isAppMode ? 'application' : 'direct', // NEW FIELD
             createdAt:
               firebase.firestore.FieldValue.serverTimestamp(),
           };
-
-          const id = document.getElementById("admin-event-id").value; // Reuse logic for potential edit (future proof)
           await db.collection("events").add(d);
-
-          // Notify all users about new event (Naive implementation, better via Cloud Functions)
-          // Skipping broadcast loop to prevent client-side overload as per Task 3 constraints
+          
+          // Task 2: Broadcast Notification
+          notifLogic.broadcast(`New Event: ${d.title}`, 'event');
           
           ui.closeModal("event-modal");
           ui.showToast("Event Matrix Initialized", "success");
@@ -1782,55 +1805,123 @@
             ui.showToast("Node Erased", "info");
           }
         },
+        // Updated for Task 4: Approval Workflow
         loadRegistrations: async function (id, title) {
           document.getElementById("reg-event-title").innerText =
             title;
           ui.openModal("reg-viewer-modal");
-          const snap = await db
-            .collection("registrations")
+          
+          // Real-time listener for registration status updates
+          db.collection("registrations")
             .where("eventId", "==", id)
-            .get();
-          const tbody = document.getElementById("reg-list-body");
-          tbody.innerHTML = snap.docs
-            .map((doc) => {
-              const r = doc.data();
-              // Task 4: Show Approval Button if pending
-              let actionHtml = `<span class="text-indigo-500">AUTHORIZED</span>`;
-              if (r.status === "pending") {
-                actionHtml = `<button onclick="adminLogic.approveReg('${doc.id}', '${r.userId}', '${r.eventTitle}')" class="bg-green-500 text-white px-3 py-1 rounded-lg text-[10px] font-bold">APPROVE</button>`;
-              }
-
-              return `<tr class="border-b dark:border-slate-800">
-                  <td class="p-6 font-black">${r.name}<br><span class="text-[10px] text-slate-400 font-normal">${r.email || "No Email"}</span></td>
-                  <td class="p-6 text-slate-500 text-xs">${
-                    r.answers
-                      ? Object.entries(r.answers)
-                          .map(
-                            ([k, v]) =>
-                              `<b>${k}:</b> ${v}`
-                          )
-                          .join("<br>")
-                      : "Direct Ticket"
-                  }</td>
-                  <td class="p-6 text-right font-black uppercase">${actionHtml}</td>
-              </tr>`;
-            })
-            .join("");
+            .onSnapshot(snap => {
+                const tbody = document.getElementById("reg-list-body");
+                if(snap.empty) {
+                    tbody.innerHTML = '<tr><td colspan="3" class="p-6 text-center italic text-slate-400">No records found</td></tr>';
+                    return;
+                }
+                
+                tbody.innerHTML = snap.docs
+                .map((doc) => {
+                  const r = doc.data();
+                  // Logic to show Approve button if pending
+                  const isPending = r.status === 'pending';
+                  const actionBtn = isPending ? 
+                    `<button onclick="adminLogic.approveReg('${doc.id}', '${r.userId}')" class="bg-indigo-600 text-white px-3 py-1 rounded-lg text-[9px] font-black hover:bg-indigo-700">APPROVE</button>` :
+                    `<span class="text-indigo-500">${r.checkedIn ? "CHECKED-IN" : "AUTHORIZED"}</span>`;
+                  
+                  return `<tr class="border-b dark:border-slate-800"><td class="p-6 font-black">${
+                    r.name
+                  }</td><td class="p-6 text-slate-500">
+                    <p>${r.email || "N/A"}</p>
+                    ${r.reason ? `<p class="text-[10px] italic text-slate-400 mt-1">"${r.reason}"</p>` : ''}
+                  </td><td class="p-6 text-right font-black uppercase">
+                    ${actionBtn}
+                  </td></tr>`;
+                })
+                .join("");
+            });
         },
-        approveReg: async function (regId, userId, eventTitle) {
-          // Task 4: Approve logic
-          await db.collection("registrations").doc(regId).update({
-             status: "confirmed"
-          });
-          // Send notification
-          await notifLogic.send(userId, "event", `Your application for ${eventTitle} has been APPROVED! Ticket is now in your dashboard.`);
-          ui.showToast("Application Approved & Ticket Generated", "success");
-          // Refresh modal list (hacky but works)
-          // adminLogic.loadRegistrations(...) - simpler to just remove row or let admin close/reopen
+        approveReg: async function(regId, userId) {
+            await db.collection("registrations").doc(regId).update({
+                status: 'confirmed'
+            });
+            // Task 2: Notify User
+            notifLogic.send(userId, "Your event application has been APPROVED!", "success");
+            ui.showToast("Application Approved", "success");
         }
       };
 
-      // TEAM LOGIC (Updated for Task 3)
+      // SCANNER LOGIC
+      window.scannerLogic = {
+        start: function () {
+          const res = document.getElementById("scan-result");
+          res.classList.add("hidden");
+          if (html5QrScanner) this.stop();
+          html5QrScanner = new Html5Qrcode("reader");
+          html5QrScanner
+            .start(
+              { facingMode: "environment" },
+              { fps: 20, qrbox: 250 },
+              (txt) => this.validate(txt)
+            )
+            .catch((err) =>
+              ui.showToast("Optical Hardware Error: " + err, "error")
+            );
+        },
+        validate: async function (id) {
+          const res = document.getElementById("scan-result");
+          res.classList.remove("hidden");
+          res.className =
+            "mt-8 p-6 rounded-2xl font-black bg-indigo-50 text-indigo-700 animate-pulse";
+          res.innerText = "AUTHENTICATING...";
+          try {
+            const doc = await db
+              .collection("registrations")
+              .doc(id)
+              .get();
+            if (!doc.exists) {
+              res.className =
+                "mt-8 p-6 rounded-2xl bg-red-50 text-red-600";
+              res.innerText = "INVALID CREDENTIALS";
+              return;
+            }
+            const d = doc.data();
+            
+            // Check status for applications
+            if (d.status === 'pending') {
+                res.className = "mt-8 p-6 rounded-2xl bg-orange-50 text-orange-600";
+                res.innerText = "PENDING APPROVAL";
+                return;
+            }
+
+            if (d.checkedIn) {
+              res.className =
+                "mt-8 p-6 rounded-2xl bg-orange-50 text-orange-600";
+              res.innerText = "ID ALREADY SCANNED";
+            } else {
+              await db
+                .collection("registrations")
+                .doc(id)
+                .update({ checkedIn: true });
+              res.className =
+                "mt-8 p-6 rounded-2xl bg-green-50 text-green-700 animate-bounce";
+              res.innerText = "WELCOME, " + d.name.toUpperCase();
+              ui.celebrate();
+            }
+          } catch (e) {
+            res.innerText = "Validation Error: " + e.message;
+          }
+        },
+        stop: function () {
+          if (html5QrScanner) {
+            html5QrScanner.stop();
+            html5QrScanner = null;
+          }
+        },
+      };
+
+      // TEAM LOGIC
       window.teamLogic = {
         init: function () {
           db.collection("teamfinder")
@@ -1865,6 +1956,12 @@
                                 ${
                                   state.user?.uid === p.userId ||
                                   state.isAdmin
+                                    ? `<button onclick="teamLogic.editPost('${p.id}')" class="text-[9px] font-black uppercase text-indigo-500 border border-indigo-100 dark:border-indigo-900 px-2 py-1 rounded-lg">Update</button>`
+                                    : ""
+                                }
+                                ${
+                                  state.user?.uid === p.userId ||
+                                  state.isAdmin
                                     ? `<button onclick="teamLogic.deletePost('${p.id}')" class="text-[9px] font-black uppercase text-red-500 border border-red-100 dark:border-red-900 px-2 py-1 rounded-lg">del</button>`
                                     : ""
                                 }
@@ -1893,6 +1990,18 @@
           document.getElementById("post-id").value = "";
           ui.openModal("post-modal");
         },
+        editPost: (id) => {
+          const p = state.posts.find((x) => x.id === id);
+          if (!p) return;
+          document.getElementById("post-id").value = id;
+          document.getElementById("post-looking").value =
+            p.lookingFor;
+          document.getElementById("post-desc").value = p.description;
+          document.getElementById("post-skills").value =
+            Array.isArray(p.skills) ? p.skills.join(", ") : p.skills;
+          document.getElementById("post-contact").value = p.contact;
+          ui.openModal("post-modal");
+        },
         savePost: async function (e) {
           e.preventDefault();
           const d = {
@@ -1905,7 +2014,9 @@
             createdAt:
               firebase.firestore.FieldValue.serverTimestamp(),
           };
-          await db.collection("teamfinder").add(d);
+          const id = document.getElementById("post-id").value;
+          if (id) await db.collection("teamfinder").doc(id).update(d);
+          else await db.collection("teamfinder").add(d);
           ui.closeModal("post-modal");
           ui.showToast("Intelligence Logged", "success");
         },
@@ -1915,6 +2026,15 @@
         },
         openJoin: (pid, oid) => {
           if (!state.user) return ui.openModal("auth-modal");
+          if (state.isAdmin) {
+            const cid = [state.user.uid, oid].sort().join("_");
+            chatLogic.open(cid);
+            ui.showToast(
+              "Admin Override: Communication Link Established",
+              "success"
+            );
+            return;
+          }
           document.getElementById("join-post-id").value = pid;
           document.getElementById("join-post-owner-id").value = oid;
           ui.openModal("join-modal");
@@ -1935,29 +2055,26 @@
           };
           await db.collection("team_requests").add(d);
           
-          // Send Notification to Owner
-          await notifLogic.send(d.postOwnerId, "team", `New team application from ${d.name}`);
-
+          // Task 2: Notify Post Owner
+          notifLogic.send(d.postOwnerId, `New Team Request from ${d.name}`, "alert");
+          
           ui.closeModal("join-modal");
           ui.showToast("Transmission Successful", "success");
         },
-        // NEW: Handle Accept/Reject (Task 3)
-        handleRequest: async function(reqId, action, requesterId, requesterName) {
-            await db.collection("team_requests").doc(reqId).update({
-                status: action
-            });
+        // NEW Task 3: Accept/Reject Logic
+        updateRequest: async function(reqId, status, requesterId) {
+            await db.collection("team_requests").doc(reqId).update({ status: status });
             
-            if (action === 'Accepted') {
-                await notifLogic.send(requesterId, "team", `Your team request was ACCEPTED!`);
-                ui.showToast("Applicant Welcomed to Squad", "success");
-                ui.celebrate();
+            // Send Notification
+            if(status === 'Accepted') {
+                notifLogic.send(requesterId, "Your team request was ACCEPTED! 🎉", "success");
             } else {
-                 ui.showToast("Applicant Declined", "info");
+                notifLogic.send(requesterId, "Your team request was declined.", "alert");
             }
+            ui.showToast(`Request ${status}`, status === 'Accepted' ? 'success' : 'info');
         },
         viewApplicant: async function (uid) {
-           // existing logic
-           const uDoc = await db.collection("users").doc(uid).get();
+          const uDoc = await db.collection("users").doc(uid).get();
           if (!uDoc.exists)
             return ui.showToast("Identity not found", "error");
           const u = uDoc.data();
@@ -1994,395 +2111,31 @@
                                 }
                             </div>
                         </div>
+                        <div>
+                            <p class="text-[9px] font-black text-slate-400 uppercase mb-2">Biography</p>
+                            <p class="text-sm dark:text-slate-300 italic">"${
+                              u.interests || "No briefing available."
+                            }"</p>
+                        </div>
+                        <div class="pt-6 border-t dark:border-slate-800 flex justify-center gap-4">
+                            ${
+                              u.github
+                                ? `<a href="${u.github}" target="_blank" class="text-slate-400 hover:text-slate-900 dark:hover:text-white transition">CODE</a>`
+                                : ""
+                            }
+                            ${
+                              u.linkedin
+                                ? `<a href="${u.linkedin}" target="_blank" class="text-indigo-400 hover:text-indigo-600 transition">LINKEDIN</a>`
+                                : ""
+                            }
+                        </div>
                     </div>
                 `;
           ui.openModal("applicant-modal");
-        }
-      };
-
-      // EVENTS LOGIC (Updated for Task 1 & 4)
-      window.eventsLogic = {
-        init: function () {
-          db.collection("events")
-            .orderBy("createdAt", "desc")
-            .onSnapshot((s) => {
-              state.events = s.docs.map((d) => ({
-                id: d.id,
-                ...d.data(),
-              }));
-              this.render(state.events);
-            });
-        },
-        render: function (list) {
-          const grid = document.getElementById("events-grid");
-          // Task 1: Auto Vanish - Filter out expired events from main view
-          const activeList = list.filter(e => !isEventExpired(e.date));
-
-          grid.innerHTML = activeList
-            .map(
-              (e) => `
-                    <div onclick="eventsLogic.openDetail('${
-                      e.id
-                    }')" class="glass rounded-[2.5rem] overflow-hidden cursor-pointer hover:scale-[1.03] transition-all bg-white dark:bg-slate-800/50 group shadow-lg">
-                        <div class="relative overflow-hidden h-56">
-                            <img src="${
-                              e.poster ||
-                              "https://placehold.co/600x400?text=" +
-                                encodeURIComponent(e.title)
-                            }" class="h-full w-full object-cover transition duration-700 group-hover:scale-110">
-                            <div class="absolute inset-0 bg-gradient-to-t from-slate-900/80 to-transparent opacity-0 group-hover:opacity-100 transition duration-500 flex items-end p-8">
-                                <span class="text-white text-xs font-black uppercase tracking-widest">Examine Details</span>
-                            </div>
-                        </div>
-                        <div class="p-8">
-                            <div class="flex justify-between items-center mb-1">
-                                <span class="text-indigo-600 font-black text-[9px] uppercase tracking-widest">${e.type}</span>
-                                ${e.regType === 'approval' ? '<span class="bg-purple-100 text-purple-600 px-2 py-0.5 rounded text-[8px] font-bold uppercase">Application</span>' : ''}
-                            </div>
-                            <h3 class="text-xl font-black mb-2 dark:text-white group-hover:text-indigo-600 transition">${
-                              e.title
-                            }</h3>
-                            <p class="text-[10px] uppercase font-black text-slate-400">${
-                              e.date ? new Date(e.date).toLocaleString() : "TBA"
-                            } • ${e.venue}</p>
-                        </div>
-                    </div>`
-            )
-            .join("");
-        },
-        filter: (t) =>
-          eventsLogic.render(
-            t === "All"
-              ? state.events
-              : state.events.filter((x) => x.type === t)
-          ),
-        openDetail: (id) => {
-          const e = state.events.find((x) => x.id === id);
-          if (!e) return;
-          const isReg = state.userRegistrations.some(
-            (r) => r.eventId === id && r.status === 'confirmed'
-          );
-          const isPending = state.userRegistrations.some(
-             (r) => r.eventId === id && r.status === 'pending'
-          );
-          
-          // Task 1: Check Expiry
-          const expired = isEventExpired(e.date);
-
-          // Task 4: Dynamic Button / Form
-          let actionArea = '';
-
-          if (expired) {
-              actionArea = `<button disabled class="w-full bg-slate-300 text-slate-500 py-5 rounded-3xl font-black cursor-not-allowed">EVENT EXPIRED</button>`;
-          } else if (isReg) {
-              actionArea = `<button class="w-full bg-green-100 text-green-700 py-5 rounded-3xl font-black cursor-default border-2 border-green-200">ACCESS PERMISSION GRANTED</button>`;
-          } else if (isPending) {
-              actionArea = `<button disabled class="w-full bg-yellow-100 text-yellow-700 py-5 rounded-3xl font-black cursor-wait border-2 border-yellow-200">APPLICATION UNDER REVIEW</button>`;
-          } else {
-              // Logic for Direct vs Application
-              if (e.regType === 'approval') {
-                  // Render dynamic inputs
-                  const questions = (e.questions || "").split('\n').filter(q => q.trim());
-                  const formInputs = questions.map((q, idx) => `
-                    <div class="mb-3">
-                        <label class="text-[10px] font-bold text-slate-500 uppercase block mb-1">${q}</label>
-                        <input type="text" id="ans-${idx}" class="w-full p-3 rounded-xl border bg-slate-50 dark:bg-slate-800 dark:text-white text-sm" required placeholder="Answer here...">
-                    </div>
-                  `).join('');
-                  
-                  actionArea = `
-                    <div class="bg-slate-50 dark:bg-slate-800 p-6 rounded-3xl border dark:border-slate-700 mb-4">
-                        <h4 class="font-bold mb-4 dark:text-white">📝 Application Required</h4>
-                        <form onsubmit="eventsLogic.submitApplication(event, '${e.id}')">
-                            <input type="text" id="app-name" value="${state.user?.displayName || ''}" placeholder="Full Name" class="w-full p-3 rounded-xl border mb-3 text-sm" required>
-                            <input type="text" id="app-contact" placeholder="Contact/WhatsApp" class="w-full p-3 rounded-xl border mb-3 text-sm" required>
-                            ${formInputs}
-                            <button type="submit" class="w-full bg-purple-600 text-white py-4 rounded-2xl font-black shadow-lg mt-2">SUBMIT APPLICATION</button>
-                        </form>
-                    </div>
-                  `;
-              } else {
-                  // Direct
-                  actionArea = `<button onclick="eventsLogic.register('${e.id}')" class="w-full bg-indigo-600 text-white py-5 rounded-3xl font-black shadow-2xl shadow-indigo-500/30 transform hover:scale-[1.02] active:scale-[0.98] transition">CLAIM ACCESS TICKET</button>`;
-              }
-          }
-
-          document.getElementById("detail-content").innerHTML = `
-                    <div class="relative h-80">
-                        <img src="${
-                          e.poster || "https://placehold.co/800x400"
-                        }" class="w-full h-full object-cover">
-                        <div class="absolute inset-0 bg-gradient-to-t from-slate-900 to-transparent"></div>
-                        <div class="absolute bottom-10 left-10 right-10">
-                             <span class="bg-indigo-600 text-white text-[10px] px-3 py-1 rounded-full font-black uppercase mb-3 inline-block">${
-                               e.type
-                             }</span>
-                             <h2 class="text-4xl font-black text-white mb-2">${
-                               e.title
-                             }</h2>
-                        </div>
-                    </div>
-                    <div class="p-10 dark:bg-slate-900">
-                        <div class="grid grid-cols-2 gap-6 mb-10">
-                            <div class="bg-slate-50 dark:bg-slate-800 p-4 rounded-2xl border dark:border-slate-700">
-                                <p class="text-[9px] font-black text-slate-400 uppercase">Chronology</p>
-                                <p class="font-bold text-sm dark:text-white">📅 ${
-                                  e.date ? new Date(e.date).toLocaleString() : "TBA"
-                                }</p>
-                            </div>
-                            <div class="bg-slate-50 dark:bg-slate-800 p-4 rounded-2xl border dark:border-slate-700">
-                                <p class="text-[9px] font-black text-slate-400 uppercase">Coordinates</p>
-                                <p class="font-bold text-sm dark:text-white">📍 ${
-                                  e.venue
-                                }</p>
-                            </div>
-                        </div>
-                        <div class="prose dark:prose-invert max-w-none mb-8">
-                            <p class="text-slate-600 dark:text-slate-300 whitespace-pre-line leading-relaxed text-lg">${
-                              e.description
-                            }</p>
-                        </div>
-                        ${actionArea}
-                    </div>`;
-          ui.openModal("detail-modal");
-        },
-        register: async function (id) {
-          if (!state.user) return ui.openModal("auth-modal");
-          const e = state.events.find((x) => x.id === id);
-          
-          const regData = {
-            eventId: id,
-            eventTitle: e.title,
-            userId: state.user.uid,
-            name: state.user.displayName || "Innovator",
-            email: state.user.email,
-            status: 'confirmed', // Direct tickets are auto-confirmed
-            checkedIn: false,
-            timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-          };
-          await db.collection("registrations").add(regData);
-          ui.closeModal("detail-modal");
-          ui.showToast("Access Ticket Secured", "success");
-          ui.celebrate();
-        },
-        submitApplication: async function(e, eventId) {
-            e.preventDefault();
-            if (!state.user) return ui.openModal("auth-modal");
-            const ev = state.events.find(x => x.id === eventId);
-
-            // Collect Answers
-            const questions = (ev.questions || "").split('\n').filter(q => q.trim());
-            const answers = {};
-            questions.forEach((q, idx) => {
-                const ans = document.getElementById(`ans-${idx}`).value;
-                answers[q] = ans;
-            });
-
-            const regData = {
-                eventId: eventId,
-                eventTitle: ev.title,
-                userId: state.user.uid,
-                name: document.getElementById('app-name').value,
-                contact: document.getElementById('app-contact').value,
-                email: state.user.email,
-                status: 'pending', // Task 4: Application logic
-                answers: answers,
-                checkedIn: false,
-                timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-            };
-
-            await db.collection("registrations").add(regData);
-            ui.closeModal("detail-modal");
-            ui.showToast("Application Submitted for Review", "info");
-        }
-      };
-
-      // DASHBOARD LOGIC
-      window.dashboardLogic = {
-        switchTab: function (t) {
-          document
-            .querySelectorAll(".dashboard-tab")
-            .forEach((el) => el.classList.remove("active"));
-          document
-            .getElementById(`dash-${t}`)
-            .classList.add("active");
-          document
-            .querySelectorAll(".sidebar-link")
-            .forEach((el) => el.classList.remove("active"));
-          document
-            .getElementById(`tab-btn-${t}`)
-            .classList.add("active");
-
-          if (t === "inbox") notifLogic.openPanel(); // Optional: open panel logic
-
-          if (t === "inbox" || t === "posts")
-            dashboardLogic.loadData();
-        },
-        loadData: async function () {
-          if (!state.user) return;
-
-          // Task 3: INCOMING REQUESTS (With Accept/Reject Buttons)
-          db.collection("team_requests")
-            .where("postOwnerId", "==", state.user.uid)
-            .where("status", "==", "Pending") // Only show pending
-            .onSnapshot((reqs) => {
-              const incomingBox =
-                document.getElementById("inbox-incoming");
-              document.getElementById("badge-incoming").innerText =
-                reqs.size;
-
-              incomingBox.innerHTML = reqs.empty
-                ? '<p class="text-center italic text-slate-400 py-10">No pending applications</p>'
-                : reqs.docs
-                    .map((d) => {
-                      const r = d.data();
-                      const cid = [state.user.uid, r.requesterId]
-                        .sort()
-                        .join("_");
-                      return `
-                        <div class="bg-white dark:bg-slate-800 p-6 rounded-3xl border dark:border-slate-700 shadow-sm flex flex-col justify-between items-start gap-4 animate-reveal">
-                            <div class="w-full">
-                                <div class="flex justify-between items-start w-full">
-                                    <h4 class="font-black text-indigo-600 mb-1">${
-                                      r.name
-                                    }</h4>
-                                </div>
-                                <p class="text-xs italic text-slate-500 mb-2">"${
-                                  r.msg
-                                }"</p>
-                            </div>
-                            <!-- NEW: Task 3 Accept/Reject -->
-                            <div class="flex gap-2 w-full mt-2">
-                                <button onclick="teamLogic.handleRequest('${d.id}', 'Accepted', '${r.requesterId}')" class="flex-1 bg-green-100 text-green-700 hover:bg-green-200 px-3 py-2 rounded-xl text-[10px] font-black">ACCEPT</button>
-                                <button onclick="teamLogic.handleRequest('${d.id}', 'Rejected', '${r.requesterId}')" class="flex-1 bg-red-50 text-red-600 hover:bg-red-100 px-3 py-2 rounded-xl text-[10px] font-black">REJECT</button>
-                            </div>
-                             <div class="flex gap-2 w-full mt-1">
-                                <button onclick="teamLogic.viewApplicant('${
-                                  r.requesterId
-                                }')" class="flex-1 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 px-4 py-2 rounded-xl text-[10px] font-black">Profile</button>
-                                <button onclick="chatLogic.open('${cid}')" class="flex-1 bg-indigo-600 text-white px-4 py-2 rounded-xl text-[10px] font-black shadow-lg">Chat</button>
-                            </div>
-                        </div>`;
-                    })
-                    .join("");
-            });
-
-          // Render Sent Applications
-          db.collection("team_requests")
-            .where("requesterId", "==", state.user.uid)
-            .onSnapshot((sent) => {
-              const sentBox = document.getElementById("inbox-sent");
-              ui.animateCounter("stat-apps-sent", sent.size);
-              sentBox.innerHTML = sent.empty
-                ? '<p class="text-center italic text-slate-400 py-10">No sent transmissions</p>'
-                : sent.docs
-                    .map((d) => {
-                      const s = d.data();
-                      const statusColor =
-                        s.status === "Accepted"
-                          ? "text-green-500"
-                          : s.status === "Rejected"
-                          ? "text-red-500"
-                          : "text-orange-500";
-                      return `
-                        <div class="bg-slate-50 dark:bg-slate-800/30 p-6 rounded-3xl border border-dashed border-slate-200 dark:border-slate-700 flex justify-between items-center opacity-80 group hover:opacity-100 transition">
-                            <div>
-                                <p class="text-[9px] font-black uppercase text-slate-400 mb-1">Sent Request</p>
-                                <h4 class="font-black dark:text-white group-hover:text-indigo-600 transition">${
-                                  s.name
-                                }</h4>
-                            </div>
-                            <div class="text-right">
-                                <span class="text-[10px] font-black uppercase ${statusColor}">${
-                        s.status || "Pending"
-                      }</span>
-                            </div>
-                        </div>`;
-                    })
-                    .join("");
-            });
-            // Post logic existing...
-            const myPosts = await db.collection("teamfinder").where("userId", "==", state.user.uid).get();
-            document.getElementById("profile-posts").innerHTML = myPosts.empty ? '...' : myPosts.docs.map(d=> {
-                 // simplified for brevity in this snippet, assumes existing logic logic is preserved in real run
-                 const p = d.data();
-                 return `<div class="bg-white dark:bg-slate-800 p-6 rounded-3xl border dark:border-slate-700 shadow-sm flex justify-between items-center"><div><p class="font-black dark:text-white">${p.lookingFor}</p></div><button onclick="teamLogic.deletePost('${d.id}')" class="text-red-500 text-xs font-bold">REMOVE</button></div>`
-            }).join("");
-        },
-        renderTickets: function () {
-          const box = document.getElementById("profile-tickets");
-          
-          // Task 4: Filter to only show CONFIRMED tickets (hide pending applications)
-          const validTickets = state.userRegistrations.filter(r => r.status === 'confirmed' || !r.status /* legacy support */);
-
-          if (validTickets.length === 0) {
-            box.innerHTML =
-              '<div class="col-span-full text-center p-12 bg-slate-50 dark:bg-slate-800/50 rounded-3xl border border-dashed dark:border-slate-700"><p class="italic text-slate-400">No active access passes detected.</p></div>';
-            return;
-          }
-
-          box.innerHTML = validTickets
-            .map(
-              (r) => `
-                    <div class="bg-white dark:bg-slate-800 p-6 rounded-3xl border dark:border-slate-700 shadow-sm flex items-center justify-between group transition hover:shadow-xl">
-                        <div class="flex items-center gap-4">
-                            <div class="w-12 h-12 rounded-2xl bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600 font-black text-xl">
-                                🎟️
-                            </div>
-                            <div>
-                                <h4 class="font-black dark:text-white text-md leading-tight">${
-                                  r.eventTitle
-                                }</h4>
-                                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-tighter mt-1">${
-                                  r.checkedIn
-                                    ? "✓ Authorization Confirmed"
-                                    : "• Pending Physical Sync"
-                                }</p>
-                            </div>
-                        </div>
-                        <button onclick="dashboardLogic.openTicketModal('${
-                          r.id
-                        }')" class="bg-indigo-600 text-white px-5 py-2.5 rounded-2xl text-[10px] font-black shadow-lg hover:bg-indigo-700 transition transform hover:scale-105 active:scale-95">VIEW PASS</button>
-                    </div>`
-            )
-            .join("");
-        },
-        openTicketModal: function (regId) {
-          const reg = state.userRegistrations.find(
-            (x) => x.id === regId
-          );
-          if (!reg) return;
-
-          const nameEl = document.getElementById("ticket-event-name");
-          const userEl = document.getElementById("ticket-user-name");
-          const idEl = document.getElementById("ticket-id-display");
-          const qrContainer = document.getElementById(
-            "ticket-qr-container"
-          );
-
-          nameEl.innerText = reg.eventTitle;
-          userEl.innerText = reg.name || "Innovator Node";
-          idEl.innerText = `ACCESS-UID: ${reg.id.toUpperCase()}`;
-
-          // Reuse existing QR logic
-          qrContainer.innerHTML = "";
-          new QRCode(qrContainer, {
-            text: reg.id,
-            width: 180,
-            height: 180,
-            colorDark: "#1e1b4b",
-            colorLight: "#ffffff",
-            correctLevel: QRCode.CorrectLevel.H,
-          });
-
-          ui.openModal("ticket-modal");
-          ui.showToast("Synchronizing Access Ticket...", "success");
         },
       };
-      
-      // ... (Rest of existing router/scanner/auth/profile logic kept exactly as is) ...
 
-      // CHAT LOGIC (Preserved)
+      // CHAT LOGIC
       window.chatLogic = {
         open: function (cid) {
           state.activeChatId = cid;
@@ -2428,11 +2181,13 @@
               timestamp:
                 firebase.firestore.FieldValue.serverTimestamp(),
             });
-            // Optional: Send chat notification here if needed
+          
+          // Task 2: Notify Recipient logic (Complex because we don't know recipient ID easily in simple structure)
+          // Simplified: We assume chat is 2 people. 
         },
       };
 
-      // AUTH LOGIC (Preserved)
+      // AUTH LOGIC
       const authLogic = {
         init: function () {
           auth.onAuthStateChanged((user) => {
@@ -2499,9 +2254,12 @@
         },
         googleLogin: () => {
           const provider = new firebase.auth.GoogleAuthProvider();
+
+          // 🔥 Force Gmail chooser every time
           provider.setCustomParameters({
             prompt: "select_account",
           });
+
           return auth
             .signInWithPopup(provider)
             .then(() => ui.closeModal("auth-modal"));
@@ -2532,7 +2290,7 @@
         },
       };
 
-      // PROFILE LOGIC (Preserved)
+      // PROFILE LOGIC
       window.profileLogic = {
         refresh: async function () {
           if (!state.user) return;
@@ -2573,6 +2331,7 @@
           state.profileCompleteness = completeness;
           document.getElementById("prof-integrity-bar").style.width =
             completeness + "%";
+
           const percentEl = document.getElementById(
             "prof-integrity-percent"
           );
@@ -2623,65 +2382,428 @@
         openMyProfile: () => ui.openModal("profile-modal"),
       };
 
-      // SCANNER LOGIC (Preserved)
-      window.scannerLogic = {
-        start: function () {
-          const res = document.getElementById("scan-result");
-          res.classList.add("hidden");
-          if (html5QrScanner) this.stop();
-          html5QrScanner = new Html5Qrcode("reader");
-          html5QrScanner
-            .start(
-              { facingMode: "environment" },
-              { fps: 20, qrbox: 250 },
-              (txt) => this.validate(txt)
+      // DASHBOARD LOGIC
+      window.dashboardLogic = {
+        switchTab: function (t) {
+          document
+            .querySelectorAll(".dashboard-tab")
+            .forEach((el) => el.classList.remove("active"));
+          document
+            .getElementById(`dash-${t}`)
+            .classList.add("active");
+          document
+            .querySelectorAll(".sidebar-link")
+            .forEach((el) => el.classList.remove("active"));
+          document
+            .getElementById(`tab-btn-${t}`)
+            .classList.add("active");
+
+          if (t === "inbox" || t === "posts")
+            dashboardLogic.loadData();
+        },
+        loadData: async function () {
+          if (!state.user) return;
+
+          // Task 3: Updated Inbox Logic (Accept/Reject)
+          db.collection("team_requests")
+            .where("postOwnerId", "==", state.user.uid)
+            .onSnapshot((reqs) => {
+              const incomingBox =
+                document.getElementById("inbox-incoming");
+              document.getElementById("badge-incoming").innerText =
+                reqs.size;
+
+              incomingBox.innerHTML = reqs.empty
+                ? '<p class="text-center italic text-slate-400 py-10">No incoming transmissions</p>'
+                : reqs.docs
+                    .map((d) => {
+                      const r = d.data();
+                      const cid = [state.user.uid, r.requesterId]
+                        .sort()
+                        .join("_");
+                      
+                      const actions = r.status === "Pending" ? `
+                        <button onclick="teamLogic.updateRequest('${d.id}', 'Accepted', '${r.requesterId}')" class="flex-1 bg-green-100 text-green-700 px-3 py-2 rounded-xl text-[10px] font-black hover:bg-green-200">ACCEPT</button>
+                        <button onclick="teamLogic.updateRequest('${d.id}', 'Rejected', '${r.requesterId}')" class="flex-1 bg-red-100 text-red-600 px-3 py-2 rounded-xl text-[10px] font-black hover:bg-red-200">REJECT</button>
+                      ` : `<span class="flex-1 text-center py-2 text-[10px] font-black uppercase ${r.status === 'Accepted' ? 'text-green-600' : 'text-red-500'}">${r.status}</span>`;
+
+                      return `
+                        <div class="bg-white dark:bg-slate-800 p-6 rounded-3xl border dark:border-slate-700 shadow-sm flex flex-col justify-between items-start gap-4 animate-reveal">
+                            <div class="w-full">
+                                <div class="flex justify-between items-start w-full">
+                                    <h4 class="font-black text-indigo-600 mb-1">${
+                                      r.name
+                                    }</h4>
+                                    
+                                </div>
+                                <p class="text-xs italic text-slate-500 mb-2">"${
+                                  r.msg
+                                }"</p>
+                                <div class="flex items-center gap-2">
+                                     <span class="bg-slate-100 dark:bg-slate-900 px-2 py-0.5 rounded-lg text-[8px] font-black uppercase text-slate-400">${
+                                       r.timestamp
+                                         ?.toDate()
+                                         .toLocaleString() || "N/A"
+                                     }</span>
+                                     <span class="text-[8px] font-black uppercase text-indigo-400">Verified Contact</span>
+                                </div>
+                            </div>
+                            <div class="flex gap-2 w-full">
+                                <button onclick="teamLogic.viewApplicant('${
+                                  r.requesterId
+                                }')" class="bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 px-3 py-2 rounded-xl text-[10px] font-black">VIEW</button>
+                                ${actions}
+                                <button onclick="chatLogic.open('${cid}')" class="bg-indigo-600 text-white px-3 py-2 rounded-xl text-[10px] font-black shadow-lg">CHAT</button>
+                            </div>
+                        </div>`;
+                    })
+                    .join("");
+            });
+
+          db.collection("team_requests")
+            .where("requesterId", "==", state.user.uid)
+            .onSnapshot((sent) => {
+              const sentBox = document.getElementById("inbox-sent");
+              ui.animateCounter("stat-apps-sent", sent.size);
+
+              sentBox.innerHTML = sent.empty
+                ? '<p class="text-center italic text-slate-400 py-10">No sent transmissions</p>'
+                : sent.docs
+                    .map((d) => {
+                      const s = d.data();
+                      const statusColor =
+                        s.status === "Accepted"
+                          ? "text-green-500"
+                          : s.status === "Rejected"
+                          ? "text-red-500"
+                          : "text-orange-500";
+                      return `
+                        <div class="bg-slate-50 dark:bg-slate-800/30 p-6 rounded-3xl border border-dashed border-slate-200 dark:border-slate-700 flex justify-between items-center opacity-80 group hover:opacity-100 transition">
+                            <div>
+                                <p class="text-[9px] font-black uppercase text-slate-400 mb-1">Sent Request</p>
+                                <h4 class="font-black dark:text-white group-hover:text-indigo-600 transition">${
+                                  s.name
+                                }</h4>
+                            </div>
+                            <div class="text-right">
+                                <span class="text-[10px] font-black uppercase ${statusColor}">${
+                        s.status || "Pending"
+                      }</span>
+                                <p class="text-[8px] text-slate-400 mt-1">${
+                                  s.timestamp
+                                    ?.toDate()
+                                    .toLocaleDateString() || "N/A"
+                                }</p>
+                            </div>
+                        </div>`;
+                    })
+                    .join("");
+            });
+
+          const myPosts = await db
+            .collection("teamfinder")
+            .where("userId", "==", state.user.uid)
+            .get();
+          document.getElementById("profile-posts").innerHTML =
+            myPosts.empty
+              ? '<p class="text-center italic text-slate-400 py-10">No active operational listings</p>'
+              : myPosts.docs
+                  .map((d) => {
+                    const p = d.data();
+                    return `<div class="bg-white dark:bg-slate-800 p-6 rounded-3xl border dark:border-slate-700 shadow-sm flex justify-between items-center transform hover:scale-[1.01] transition"><div><p class="font-black dark:text-white">${
+                      p.lookingFor
+                    }</p><p class="text-[10px] uppercase text-slate-400">Deployed: ${
+                      p.createdAt?.toDate().toLocaleDateString() ||
+                      "N/A"
+                    }</p></div><button onclick="teamLogic.editPost('${
+                      d.id
+                    }')" class="text-indigo-600 font-black text-xs hover:underline">UPDATE</button></div>`;
+                  })
+                  .join("");
+        },
+        renderTickets: function () {
+          const box = document.getElementById("profile-tickets");
+          
+          // Filter to show only Confirmed tickets in dashboard (Hide pending applications)
+          const validTickets = state.userRegistrations.filter(r => r.status === 'confirmed' || !r.status /* legacy support */);
+          const pendingTickets = state.userRegistrations.filter(r => r.status === 'pending');
+
+          if (validTickets.length === 0 && pendingTickets.length === 0) {
+            box.innerHTML =
+              '<div class="col-span-full text-center p-12 bg-slate-50 dark:bg-slate-800/50 rounded-3xl border border-dashed dark:border-slate-700"><p class="italic text-slate-400">No active access passes detected.</p></div>';
+            return;
+          }
+
+          let html = "";
+          
+          // Pending Section
+          if(pendingTickets.length > 0) {
+             html += pendingTickets.map(r => `
+                <div class="bg-orange-50 dark:bg-orange-900/10 p-6 rounded-3xl border border-orange-100 dark:border-orange-800/30 shadow-sm flex items-center justify-between opacity-75">
+                    <div class="flex items-center gap-4">
+                        <div class="w-12 h-12 rounded-2xl bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center text-orange-600 font-black text-xl">⏳</div>
+                        <div>
+                            <h4 class="font-black dark:text-white text-md leading-tight">${r.eventTitle}</h4>
+                            <p class="text-[10px] font-bold text-orange-500 uppercase tracking-tighter mt-1">Application Pending Approval</p>
+                        </div>
+                    </div>
+                </div>
+             `).join("");
+          }
+
+          html += validTickets
+            .map(
+              (r) => `
+                    <div class="bg-white dark:bg-slate-800 p-6 rounded-3xl border dark:border-slate-700 shadow-sm flex items-center justify-between group transition hover:shadow-xl">
+                        <div class="flex items-center gap-4">
+                            <div class="w-12 h-12 rounded-2xl bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600 font-black text-xl">
+                                🎟️
+                            </div>
+                            <div>
+                                <h4 class="font-black dark:text-white text-md leading-tight">${
+                                  r.eventTitle
+                                }</h4>
+                                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-tighter mt-1">${
+                                  r.checkedIn
+                                    ? "✓ Authorization Confirmed"
+                                    : "• Pending Physical Sync"
+                                }</p>
+                            </div>
+                        </div>
+                        <button onclick="dashboardLogic.openTicketModal('${
+                          r.id
+                        }')" class="bg-indigo-600 text-white px-5 py-2.5 rounded-2xl text-[10px] font-black shadow-lg hover:bg-indigo-700 transition transform hover:scale-105 active:scale-95">VIEW PASS</button>
+                    </div>`
             )
-            .catch((err) =>
-              ui.showToast("Optical Hardware Error: " + err, "error")
-            );
+            .join("");
+            
+            box.innerHTML = html;
         },
-        validate: async function (id) {
-          const res = document.getElementById("scan-result");
-          res.classList.remove("hidden");
-          res.className =
-            "mt-8 p-6 rounded-2xl font-black bg-indigo-50 text-indigo-700 animate-pulse";
-          res.innerText = "AUTHENTICATING...";
-          try {
-            const doc = await db
-              .collection("registrations")
-              .doc(id)
-              .get();
-            if (!doc.exists) {
-              res.className =
-                "mt-8 p-6 rounded-2xl bg-red-50 text-red-600";
-              res.innerText = "INVALID CREDENTIALS";
-              return;
-            }
-            const d = doc.data();
-            if (d.checkedIn) {
-              res.className =
-                "mt-8 p-6 rounded-2xl bg-orange-50 text-orange-600";
-              res.innerText = "ID ALREADY SCANNED";
-            } else {
-              await db
-                .collection("registrations")
-                .doc(id)
-                .update({ checkedIn: true });
-              res.className =
-                "mt-8 p-6 rounded-2xl bg-green-50 text-green-700 animate-bounce";
-              res.innerText = "WELCOME, " + d.name.toUpperCase();
-              ui.celebrate();
-            }
-          } catch (e) {
-            res.innerText = "Validation Error: " + e.message;
+        openTicketModal: function (regId) {
+          const reg = state.userRegistrations.find(
+            (x) => x.id === regId
+          );
+          if (!reg) return;
+
+          const nameEl = document.getElementById("ticket-event-name");
+          const userEl = document.getElementById("ticket-user-name");
+          const idEl = document.getElementById("ticket-id-display");
+          const qrContainer = document.getElementById(
+            "ticket-qr-container"
+          );
+
+          nameEl.innerText = reg.eventTitle;
+          userEl.innerText = reg.name || "Innovator Node";
+          idEl.innerText = `ACCESS-UID: ${reg.id.toUpperCase()}`;
+
+          qrContainer.innerHTML = "";
+          new QRCode(qrContainer, {
+            text: reg.id,
+            width: 180,
+            height: 180,
+            colorDark: "#1e1b4b",
+            colorLight: "#ffffff",
+            correctLevel: QRCode.CorrectLevel.H,
+          });
+
+          ui.openModal("ticket-modal");
+          ui.showToast("Synchronizing Access Ticket...", "success");
+        },
+      };
+
+      // EVENTS LOGIC
+      window.eventsLogic = {
+        init: function () {
+          db.collection("events")
+            .orderBy("createdAt", "desc")
+            .onSnapshot((s) => {
+              state.events = s.docs.map((d) => ({
+                id: d.id,
+                ...d.data(),
+              }));
+              this.render(state.events);
+            });
+            
+          // Task 1: Auto Vanish Timer (Runs every 60s)
+          setInterval(() => {
+             this.render(state.events);
+          }, 60000);
+        },
+        render: function (list) {
+          const grid = document.getElementById("events-grid");
+          // Task 1: Filter Expired Events
+          const now = new Date();
+          const activeList = list.filter(e => {
+             // If no date, show it. If date, check if future.
+             return !e.date || new Date(e.date) > now;
+          });
+
+          grid.innerHTML = activeList.length === 0 ? 
+            '<div class="col-span-full text-center py-20"><h3 class="text-2xl font-black text-slate-300 uppercase">No Active Modules</h3></div>' :
+            activeList
+            .map(
+              (e) => `
+                    <div onclick="eventsLogic.openDetail('${
+                      e.id
+                    }')" class="glass rounded-[2.5rem] overflow-hidden cursor-pointer hover:scale-[1.03] transition-all bg-white dark:bg-slate-800/50 group shadow-lg">
+                        <div class="relative overflow-hidden h-56">
+                            <img src="${
+                              e.poster ||
+                              "https://placehold.co/600x400?text=" +
+                                encodeURIComponent(e.title)
+                            }" class="h-full w-full object-cover transition duration-700 group-hover:scale-110">
+                            <div class="absolute inset-0 bg-gradient-to-t from-slate-900/80 to-transparent opacity-0 group-hover:opacity-100 transition duration-500 flex items-end p-8">
+                                <span class="text-white text-xs font-black uppercase tracking-widest">Examine Details</span>
+                            </div>
+                        </div>
+                        <div class="p-8">
+                            <span class="text-indigo-600 font-black text-[9px] uppercase tracking-widest">${
+                              e.type
+                            }</span>
+                            <h3 class="text-xl font-black mb-2 dark:text-white mt-1 group-hover:text-indigo-600 transition">${
+                              e.title
+                            }</h3>
+                            <p class="text-[10px] uppercase font-black text-slate-400">${
+                              e.date ? new Date(e.date).toLocaleDateString() : "TBA"
+                            } • ${e.venue}</p>
+                        </div>
+                    </div>`
+            )
+            .join("");
+        },
+        filter: (t) => {
+           // Filter needs to apply the same logic
+           const filtered = t === "All" ? state.events : state.events.filter((x) => x.type === t);
+           // Task 1: Re-filter for time happens inside render()
+           eventsLogic.render(filtered);
+        },
+        openDetail: (id) => {
+          const e = state.events.find((x) => x.id === id);
+          if (!e) return;
+          
+          // Task 1: Check Expiry inside Detail View
+          const isExpired = e.date && new Date(e.date) < new Date();
+          
+          const regRecord = state.userRegistrations.find(
+            (r) => r.eventId === id
+          );
+          
+          let actionButton = "";
+          
+          if (isExpired) {
+              actionButton = `<button class="w-full bg-slate-200 text-slate-500 py-5 rounded-3xl font-black cursor-not-allowed">EVENT EXPIRED</button>`;
+          } else if (regRecord) {
+              if (regRecord.status === 'pending') {
+                  actionButton = `<button class="w-full bg-orange-100 text-orange-600 py-5 rounded-3xl font-black cursor-default border-2 border-orange-200">APPLICATION UNDER REVIEW</button>`;
+              } else {
+                  actionButton = `<button class="w-full bg-green-100 text-green-700 py-5 rounded-3xl font-black cursor-default border-2 border-green-200">ACCESS PERMISSION GRANTED</button>`;
+              }
+          } else {
+              // Task 4: Check if Application Mode or Direct
+              if(e.regType === 'application') {
+                  actionButton = `<button onclick="eventsLogic.openAppForm('${e.id}')" class="w-full bg-indigo-600 text-white py-5 rounded-3xl font-black shadow-2xl shadow-indigo-500/30 transform hover:scale-[1.02] active:scale-[0.98] transition">APPLY FOR ACCESS</button>`;
+              } else {
+                  actionButton = `<button onclick="eventsLogic.register('${e.id}')" class="w-full bg-indigo-600 text-white py-5 rounded-3xl font-black shadow-2xl shadow-indigo-500/30 transform hover:scale-[1.02] active:scale-[0.98] transition">CLAIM ACCESS TICKET</button>`;
+              }
           }
+
+          document.getElementById("detail-content").innerHTML = `
+                    <div class="relative h-80">
+                        <img src="${
+                          e.poster || "https://placehold.co/800x400"
+                        }" class="w-full h-full object-cover">
+                        <div class="absolute inset-0 bg-gradient-to-t from-slate-900 to-transparent"></div>
+                        <div class="absolute bottom-10 left-10 right-10">
+                             <span class="bg-indigo-600 text-white text-[10px] px-3 py-1 rounded-full font-black uppercase mb-3 inline-block">${
+                               e.type
+                             }</span>
+                             <h2 class="text-4xl font-black text-white mb-2">${
+                               e.title
+                             }</h2>
+                        </div>
+                    </div>
+                    <div class="p-10 dark:bg-slate-900">
+                        <div class="grid grid-cols-2 gap-6 mb-10">
+                            <div class="bg-slate-50 dark:bg-slate-800 p-4 rounded-2xl border dark:border-slate-700">
+                                <p class="text-[9px] font-black text-slate-400 uppercase">Chronology</p>
+                                <p class="font-bold text-sm dark:text-white">📅 ${
+                                  e.date ? new Date(e.date).toLocaleString() : "TBA"
+                                }</p>
+                            </div>
+                            <div class="bg-slate-50 dark:bg-slate-800 p-4 rounded-2xl border dark:border-slate-700">
+                                <p class="text-[9px] font-black text-slate-400 uppercase">Coordinates</p>
+                                <p class="font-bold text-sm dark:text-white">📍 ${
+                                  e.venue
+                                }</p>
+                            </div>
+                        </div>
+                        <div class="prose dark:prose-invert max-w-none">
+                            <p class="text-slate-600 dark:text-slate-300 mb-10 whitespace-pre-line leading-relaxed text-lg">${
+                              e.description
+                            }</p>
+                        </div>
+                        ${actionButton}
+                    </div>`;
+          ui.openModal("detail-modal");
         },
-        stop: function () {
-          if (html5QrScanner) {
-            html5QrScanner.stop();
-            html5QrScanner = null;
-          }
+        register: async function (id) {
+          if (!state.user) return ui.openModal("auth-modal");
+          const e = state.events.find((x) => x.id === id);
+          const regData = {
+            eventId: id,
+            eventTitle: e.title,
+            userId: state.user.uid,
+            name:
+              state.user.displayName ||
+              (
+                await db.collection("users").doc(state.user.uid).get()
+              ).data()?.name ||
+              "Innovator",
+            email: state.user.email,
+            checkedIn: false,
+            status: 'confirmed', // Direct mode = confirmed
+            timestamp:
+              firebase.firestore.FieldValue.serverTimestamp(),
+          };
+          await db.collection("registrations").add(regData);
+          
+          // Task 2: Notify User
+          notifLogic.send(state.user.uid, `Ticket Confirmed: ${e.title}`, 'success');
+          
+          ui.closeModal("detail-modal");
+          ui.showToast("Access Ticket Secured", "success");
+          ui.celebrate();
         },
+        // NEW: Task 4 Application Logic
+        openAppForm: function(id) {
+            if (!state.user) return ui.openModal("auth-modal");
+            document.getElementById("app-event-id").value = id;
+            ui.openModal("app-form-modal");
+        },
+        submitApplication: async function(e) {
+            e.preventDefault();
+            const id = document.getElementById("app-event-id").value;
+            const reason = document.getElementById("app-reason").value;
+            const evt = state.events.find(x => x.id === id);
+            
+            const regData = {
+                eventId: id,
+                eventTitle: evt.title,
+                userId: state.user.uid,
+                name: state.user.displayName || "Innovator",
+                email: state.user.email,
+                checkedIn: false,
+                status: 'pending', // App mode = pending
+                reason: reason,
+                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            };
+            
+            await db.collection("registrations").add(regData);
+            
+            ui.closeModal("app-form-modal");
+            ui.closeModal("detail-modal");
+            ui.showToast("Application Submitted for Review", "info");
+        }
       };
 
       const router = {
